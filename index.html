@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#0a0f1a"/>
+<meta name="description" content="FitIndia Pro – Your complete diet and workout tracker built for Indian lifestyles."/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="FitIndia Pro"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta property="og:title" content="FitIndia Pro"/>
+<meta property="og:description" content="Diet + Workout tracker built for India 🇮🇳"/>
+<meta property="og:type" content="website"/>
+<title>FitIndia Pro</title>
+
+<!-- PWA Manifest injected inline via JS below -->
+<!-- Apple touch icon via canvas -->
+<script>
+(function(){
+  // Generate icon via canvas and inject as apple-touch-icon
+  const c=document.createElement("canvas");c.width=180;c.height=180;
+  const ctx=c.getContext("2d");
+  const g=ctx.createLinearGradient(0,0,180,180);
+  g.addColorStop(0,"#38bdf8");g.addColorStop(1,"#818cf8");
+  ctx.fillStyle=g;ctx.roundRect(0,0,180,180,36);ctx.fill();
+  ctx.font="bold 100px serif";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("💪",90,95);
+  const url=c.toDataURL("image/png");
+  const l=document.createElement("link");l.rel="apple-touch-icon";l.href=url;
+  document.head.appendChild(l);
+
+  // Build manifest
+  const manifest={
+    name:"FitIndia Pro",short_name:"FitIndia",
+    description:"Diet + Workout tracker for India",
+    start_url:"./",display:"standalone",
+    background_color:"#0a0f1a",theme_color:"#0a0f1a",
+    orientation:"portrait",
+    icons:[
+      {src:url,sizes:"180x180",type:"image/png",purpose:"any maskable"},
+      {src:url,sizes:"192x192",type:"image/png"},
+      {src:url,sizes:"512x512",type:"image/png"},
+    ]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"});
+  const mUrl=URL.createObjectURL(blob);
+  const ml=document.createElement("link");ml.rel="manifest";ml.href=mUrl;
+  document.head.appendChild(ml);
+})();
+</script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0f1a;color:#e2e8f0;min-height:100vh;overflow-x:hidden;}
+#root{min-height:100vh;}
+input,select,button{font-family:inherit;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#334155;border-radius:99px;}
+</style>
+</head>
+<body>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;">
+  <div style="font-size:48px;">💪</div>
+  <div style="font-size:20px;font-weight:900;background:linear-gradient(135deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Loading FitIndia Pro...</div>
+</div></div>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect, useRef } = React;
+
+// ─── THEME ───────────────────────────────────────────────────────────────────
+const THEMES = {
+  dark:{ bg:"#0a0f1a",card:"#1e293b",border:"#334155",text:"#e2e8f0",sub:"#94a3b8",muted:"#475569",inp:"#0f172a" },
+  light:{ bg:"#f1f5f9",card:"#ffffff",border:"#e2e8f0",text:"#0f172a",sub:"#475569",muted:"#94a3b8",inp:"#f8fafc" },
+};
+
+// ─── FOOD DATABASE ────────────────────────────────────────────────────────────
+const FOODS=[
+  {name:"Chapati (1 piece)",cal:104,protein:3.1,carbs:18,fat:2.5,cat:"Grains"},
+  {name:"Whole Wheat Chapati (1)",cal:95,protein:3.5,carbs:16,fat:2.0,cat:"Grains"},
+  {name:"Paratha (1 plain)",cal:168,protein:3.7,carbs:22,fat:7.5,cat:"Grains"},
+  {name:"Aloo Paratha (1)",cal:200,protein:4.5,carbs:28,fat:8.0,cat:"Grains"},
+  {name:"White Rice (1 cup)",cal:206,protein:4.3,carbs:45,fat:0.4,cat:"Grains"},
+  {name:"Brown Rice (1 cup)",cal:216,protein:5.0,carbs:45,fat:1.8,cat:"Grains"},
+  {name:"Bread Slice (white)",cal:79,protein:2.7,carbs:15,fat:1.0,cat:"Grains"},
+  {name:"Brown Bread Slice",cal:70,protein:3.5,carbs:13,fat:1.0,cat:"Grains"},
+  {name:"Oats (50g dry)",cal:187,protein:6.8,carbs:32,fat:3.5,cat:"Grains"},
+  {name:"Poha (1 cup)",cal:180,protein:2.6,carbs:35,fat:4.0,cat:"Grains"},
+  {name:"Upma (1 cup)",cal:177,protein:4.5,carbs:28,fat:5.5,cat:"Grains"},
+  {name:"Idli (2 pcs)",cal:130,protein:4.0,carbs:26,fat:0.5,cat:"Grains"},
+  {name:"Dosa (1 plain)",cal:133,protein:2.7,carbs:24,fat:3.0,cat:"Grains"},
+  {name:"Masala Dosa (1)",cal:220,protein:5.0,carbs:32,fat:8.0,cat:"Grains"},
+  {name:"Puri (1)",cal:118,protein:2.2,carbs:15,fat:5.5,cat:"Grains"},
+  {name:"Naan (1 plain)",cal:262,protein:8.0,carbs:45,fat:5.0,cat:"Grains"},
+  {name:"Ragi Roti (1)",cal:108,protein:3.5,carbs:22,fat:0.8,cat:"Grains"},
+  {name:"Millet Roti/Bajra (1)",cal:105,protein:3.2,carbs:21,fat:1.5,cat:"Grains"},
+  {name:"Dal Toor (1 cup)",cal:198,protein:12.5,carbs:30,fat:1.0,cat:"Pulses"},
+  {name:"Dal Moong (1 cup)",cal:140,protein:8.0,carbs:24,fat:0.5,cat:"Pulses"},
+  {name:"Dal Masoor (1 cup)",cal:172,protein:13.0,carbs:28,fat:0.8,cat:"Pulses"},
+  {name:"Rajma (1 cup)",cal:225,protein:15.3,carbs:40,fat:0.9,cat:"Pulses"},
+  {name:"Chole (1 cup)",cal:268,protein:14.5,carbs:45,fat:4.0,cat:"Pulses"},
+  {name:"Boiled Chana (1 cup)",cal:210,protein:12.0,carbs:35,fat:2.5,cat:"Pulses"},
+  {name:"Moong Sprouts (100g)",cal:30,protein:3.0,carbs:4,fat:0.2,cat:"Pulses"},
+  {name:"Soya Chunks (50g dry)",cal:175,protein:26.0,carbs:12,fat:0.5,cat:"Pulses"},
+  {name:"Tofu (100g)",cal:76,protein:8.0,carbs:1.9,fat:4.8,cat:"Pulses"},
+  {name:"Besan Chilla (1)",cal:145,protein:7.5,carbs:18,fat:5.0,cat:"Pulses"},
+  {name:"Whole Milk (200ml)",cal:124,protein:6.4,carbs:9.6,fat:7.0,cat:"Dairy"},
+  {name:"Skim Milk (200ml)",cal:70,protein:7.0,carbs:10,fat:0.4,cat:"Dairy"},
+  {name:"Curd / Dahi (100g)",cal:61,protein:3.5,carbs:4.7,fat:3.3,cat:"Dairy"},
+  {name:"Low-Fat Curd (100g)",cal:40,protein:4.0,carbs:5.0,fat:0.5,cat:"Dairy"},
+  {name:"Greek Yogurt (100g)",cal:59,protein:10.0,carbs:3.6,fat:0.4,cat:"Dairy"},
+  {name:"Paneer (100g)",cal:265,protein:18.3,carbs:1.2,fat:20.8,cat:"Dairy"},
+  {name:"Low-Fat Paneer (100g)",cal:158,protein:14.6,carbs:2.0,fat:10.5,cat:"Dairy"},
+  {name:"Butter (1 tbsp)",cal:102,protein:0.1,carbs:0,fat:11.5,cat:"Dairy"},
+  {name:"Ghee (1 tbsp)",cal:112,protein:0,carbs:0,fat:12.5,cat:"Dairy"},
+  {name:"Cheese Slice (1)",cal:80,protein:5.0,carbs:1.5,fat:6.0,cat:"Dairy"},
+  {name:"Whey Protein (1 scoop)",cal:120,protein:24.0,carbs:3.0,fat:1.5,cat:"Dairy"},
+  {name:"Whole Egg (1)",cal:78,protein:6.3,carbs:0.6,fat:5.3,cat:"Protein"},
+  {name:"Egg White (1)",cal:17,protein:3.6,carbs:0.2,fat:0.1,cat:"Protein"},
+  {name:"Boiled Eggs (2)",cal:156,protein:12.6,carbs:1.2,fat:10.6,cat:"Protein"},
+  {name:"Chicken Breast (100g)",cal:165,protein:31.0,carbs:0,fat:3.6,cat:"Protein"},
+  {name:"Chicken Leg (100g)",cal:184,protein:26.0,carbs:0,fat:8.5,cat:"Protein"},
+  {name:"Chicken Curry (1 cup)",cal:300,protein:25.0,carbs:6.0,fat:18.0,cat:"Protein"},
+  {name:"Mutton (100g)",cal:294,protein:25.6,carbs:0,fat:20.3,cat:"Protein"},
+  {name:"Fish Rohu (100g)",cal:97,protein:17.6,carbs:0,fat:2.7,cat:"Protein"},
+  {name:"Tuna canned (100g)",cal:116,protein:26.0,carbs:0,fat:1.0,cat:"Protein"},
+  {name:"Salmon (100g)",cal:208,protein:20.0,carbs:0,fat:13.0,cat:"Protein"},
+  {name:"Prawn (100g)",cal:99,protein:20.3,carbs:0.9,fat:1.1,cat:"Protein"},
+  {name:"Aloo Sabzi (1 cup)",cal:150,protein:2.5,carbs:28,fat:4.5,cat:"Veggies"},
+  {name:"Palak Paneer (1 cup)",cal:280,protein:14.0,carbs:8,fat:20.0,cat:"Veggies"},
+  {name:"Bhindi Sabzi (1 cup)",cal:90,protein:2.2,carbs:14,fat:3.0,cat:"Veggies"},
+  {name:"Baingan Bharta (1 cup)",cal:120,protein:2.5,carbs:14,fat:6.5,cat:"Veggies"},
+  {name:"Saag (1 cup)",cal:96,protein:5.5,carbs:10,fat:4.0,cat:"Veggies"},
+  {name:"Mixed Veg Curry (1 cup)",cal:130,protein:3.5,carbs:18,fat:5.5,cat:"Veggies"},
+  {name:"Salad Bowl (plain)",cal:35,protein:1.5,carbs:7,fat:0.3,cat:"Veggies"},
+  {name:"Boiled Potato (1 med)",cal:87,protein:2.0,carbs:20,fat:0.1,cat:"Veggies"},
+  {name:"Broccoli (100g)",cal:34,protein:2.8,carbs:7,fat:0.4,cat:"Veggies"},
+  {name:"Spinach (100g raw)",cal:23,protein:2.9,carbs:3.6,fat:0.4,cat:"Veggies"},
+  {name:"Banana (1 medium)",cal:89,protein:1.1,carbs:23,fat:0.3,cat:"Fruits"},
+  {name:"Apple (1 medium)",cal:95,protein:0.5,carbs:25,fat:0.3,cat:"Fruits"},
+  {name:"Orange (1 medium)",cal:62,protein:1.2,carbs:15,fat:0.2,cat:"Fruits"},
+  {name:"Mango (1 cup sliced)",cal:99,protein:1.4,carbs:25,fat:0.6,cat:"Fruits"},
+  {name:"Papaya (1 cup)",cal:55,protein:0.9,carbs:14,fat:0.2,cat:"Fruits"},
+  {name:"Watermelon (1 cup)",cal:46,protein:0.9,carbs:11,fat:0.2,cat:"Fruits"},
+  {name:"Guava (1 medium)",cal:68,protein:2.6,carbs:14,fat:1.0,cat:"Fruits"},
+  {name:"Pomegranate (1 cup)",cal:144,protein:2.9,carbs:33,fat:2.0,cat:"Fruits"},
+  {name:"Dates (2 pcs)",cal:133,protein:1.2,carbs:36,fat:0.1,cat:"Fruits"},
+  {name:"Samosa (1 piece)",cal:262,protein:3.5,carbs:32,fat:13.0,cat:"Snacks"},
+  {name:"Biscuits Parle-G (3)",cal:60,protein:0.9,carbs:11,fat:1.5,cat:"Snacks"},
+  {name:"Marie Biscuits (4)",cal:80,protein:1.5,carbs:14,fat:2.0,cat:"Snacks"},
+  {name:"Namkeen (30g)",cal:148,protein:3.0,carbs:18,fat:7.0,cat:"Snacks"},
+  {name:"Vada Pav (1)",cal:290,protein:6.0,carbs:43,fat:10.0,cat:"Snacks"},
+  {name:"Pav Bhaji (1 plate)",cal:420,protein:9.0,carbs:58,fat:16.0,cat:"Snacks"},
+  {name:"Chaat (1 plate)",cal:200,protein:5.5,carbs:35,fat:5.0,cat:"Snacks"},
+  {name:"Pizza Slice (thin)",cal:272,protein:11.0,carbs:33,fat:10.0,cat:"Snacks"},
+  {name:"Almonds (10 pcs)",cal:69,protein:2.5,carbs:2.5,fat:6.0,cat:"Nuts"},
+  {name:"Walnuts (5 halves)",cal:93,protein:2.2,carbs:2.0,fat:9.3,cat:"Nuts"},
+  {name:"Cashews (10 pcs)",cal:90,protein:2.8,carbs:5.0,fat:7.2,cat:"Nuts"},
+  {name:"Peanuts (30g)",cal:170,protein:7.7,carbs:5.0,fat:14.0,cat:"Nuts"},
+  {name:"Peanut Butter (1 tbsp)",cal:94,protein:4.0,carbs:3.5,fat:8.0,cat:"Nuts"},
+  {name:"Chia Seeds (1 tbsp)",cal:58,protein:2.0,carbs:5.0,fat:3.7,cat:"Nuts"},
+  {name:"Flaxseeds (1 tbsp)",cal:55,protein:1.9,carbs:3.0,fat:4.3,cat:"Nuts"},
+  {name:"Lassi sweet (1 glass)",cal:150,protein:5.0,carbs:22,fat:5.0,cat:"Drinks"},
+  {name:"Buttermilk (1 glass)",cal:40,protein:2.5,carbs:4.0,fat:1.0,cat:"Drinks"},
+  {name:"Coconut Water (200ml)",cal:46,protein:1.7,carbs:9.0,fat:0.5,cat:"Drinks"},
+  {name:"Masala Chai (1 cup)",cal:54,protein:2.5,carbs:7.0,fat:2.0,cat:"Drinks"},
+  {name:"Black Coffee (1 cup)",cal:5,protein:0.3,carbs:0,fat:0.1,cat:"Drinks"},
+  {name:"Protein Shake (milk)",cal:280,protein:30.0,carbs:15,fat:7.0,cat:"Drinks"},
+  {name:"Sugarcane Juice (200ml)",cal:122,protein:0.5,carbs:30,fat:0.1,cat:"Drinks"},
+];
+
+const EX_MET={"Push-Up":8,"Wide Push-Up":8,"Diamond Push-Up":8,"Decline Push-Up":8,"Incline Push-Up":6,"Clap Push-Up":10,"Dumbbell Chest Press":6,"Dumbbell Chest Fly":5,"Incline Dumbbell Press":6,"Barbell Bench Press":6,"Cable Chest Fly":5,"Pec Deck Machine":5,"Superman Hold":4,"Doorframe Row":5,"Dumbbell Row":6,"Dumbbell Deadlift":6,"Pull-Up":9,"Lat Pulldown":6,"Seated Cable Row":6,"Barbell Deadlift":7,"Face Pull":5,"Pike Push-Up":8,"Lateral Raise":4,"Dumbbell Shoulder Press":6,"Dumbbell Lateral Raise":4,"Arnold Press":6,"Barbell Overhead Press":7,"Cable Lateral Raise":4,"Upright Row":6,"Doorframe Curl":5,"Dumbbell Bicep Curl":5,"Hammer Curl":5,"Concentration Curl":5,"Barbell Curl":5,"Preacher Curl":5,"Cable Curl":5,"Chair Dip":7,"Overhead Tricep Extension":5,"Tricep Kickback":5,"Skull Crusher":5,"Tricep Pushdown":5,"Rope Pushdown":5,"Close Grip Bench Press":6,"Bodyweight Squat":7,"Jump Squat":10,"Bulgarian Split Squat":8,"Glute Bridge":5,"Walking Lunge":7,"Calf Raise":4,"Dumbbell Squat":7,"Dumbbell Romanian Deadlift":7,"Barbell Squat":8,"Leg Press":6,"Leg Curl Machine":5,"Hip Thrust":6,"Plank":4,"Side Plank":4,"Bicycle Crunch":8,"Leg Raise":6,"Mountain Climber":10,"Hollow Body Hold":5,"Russian Twist":6,"Ab Wheel Rollout":7,"Cable Crunch":5,"Hanging Knee Raise":7,"Burpee":12,"Jump Rope":12,"Bear Crawl":8,"Dumbbell Thruster":10,"Kettlebell Swing":10,"Battle Ropes":10,"Rowing Machine":8,"Treadmill Running":10,"Surya Namaskar":5,"Downward Dog":3,"Warrior I":3,"Warrior II":3,"Triangle Pose":3,"Pigeon Pose":3,"Bridge Pose":4,"Boat Pose":4,"Cobra Pose":3,"Cat-Cow":3};
+
+const GOALS=[
+  {key:"muscle",label:"💪 Muscle Gain",calOffset:400,proteinMult:2.0,color:"#38bdf8"},
+  {key:"maintain",label:"⚖️ Maintain",calOffset:0,proteinMult:1.6,color:"#22c55e"},
+  {key:"mild_loss",label:"🔥 Mild Loss",calOffset:-300,proteinMult:1.8,color:"#f59e0b"},
+  {key:"loss",label:"⚡ Weight Loss",calOffset:-500,proteinMult:2.0,color:"#fb923c"},
+  {key:"aggressive_loss",label:"🚀 Aggressive Loss",calOffset:-750,proteinMult:2.2,color:"#ef4444"},
+];
+const PHYSIQUES_MUSCLE=[{key:"bulky",label:"🐂 Bulky",desc:"Max mass"},{key:"athletic",label:"🏃 Athletic",desc:"Lean & strong"},{key:"lean",label:"✂️ Lean Muscle",desc:"Low body fat"},{key:"aesthetic",label:"🏆 Aesthetic",desc:"V-taper"},{key:"powerlifter",label:"🏋️ Powerlifter",desc:"Raw strength"},{key:"calisthenics",label:"🤸 Calisthenics",desc:"Bodyweight"}];
+const PHYSIQUES_LOSS=[{key:"lean_toned",label:"💃 Lean & Toned",desc:"Visible tone"},{key:"slim",label:"🪶 Slim",desc:"Lighter"},{key:"athletic_cut",label:"⚡ Athletic Cut",desc:"Sporty"},{key:"defined_abs",label:"🎯 Defined Abs",desc:"Core-focused"}];
+const SPLITS=[{key:"ppl",label:"PPL",desc:"Push/Pull/Legs 6d"},{key:"ul",label:"Upper/Lower",desc:"4d balanced"},{key:"ulppl",label:"ULPPL",desc:"5d split"},{key:"bro",label:"Bro Split",desc:"1 muscle/day"},{key:"fullbody",label:"Full Body",desc:"3d total"},{key:"arnold",label:"Arnold",desc:"Classic 6d"},{key:"push_pull",label:"Push/Pull",desc:"4d"}];
+const BURN_TARGETS={ectomorph:{label:"Ectomorph",cal:200},mesomorph:{label:"Mesomorph",cal:400},endomorph:{label:"Endomorph",cal:600}};
+const MUSCLES=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Core","Full Body","Yoga"];
+const EXERCISES={
+  Chest:[{name:"Push-Up",type:["home","home_gym","gym"],muscles:"Chest, Triceps",tip:"Core tight",overload:"Diamond Push-Ups"},{name:"Wide Push-Up",type:["home","home_gym","gym"],muscles:"Outer Chest",tip:"Hands wider",overload:"Pause bottom"},{name:"Diamond Push-Up",type:["home","home_gym","gym"],muscles:"Inner Chest",tip:"Diamond hands",overload:"3-sec negatives"},{name:"Decline Push-Up",type:["home","home_gym","gym"],muscles:"Upper Chest",tip:"Feet elevated",overload:"Raise feet"},{name:"Incline Push-Up",type:["home","home_gym","gym"],muscles:"Lower Chest",tip:"Hands on surface",overload:"Lower surface"},{name:"Clap Push-Up",type:["home","home_gym","gym"],muscles:"Explosive Chest",tip:"Explode off",overload:"Double clap"},{name:"Dumbbell Chest Press",type:["home_gym","gym"],muscles:"Chest, Triceps",tip:"45° elbows",overload:"+1-2kg/week"},{name:"Dumbbell Chest Fly",type:["home_gym","gym"],muscles:"Chest Stretch",tip:"Slight elbow bend",overload:"More weight"},{name:"Incline Dumbbell Press",type:["home_gym","gym"],muscles:"Upper Chest",tip:"30-45° bench",overload:"Add weight"},{name:"Barbell Bench Press",type:["gym"],muscles:"Full Chest",tip:"Feet flat",overload:"5x5 progressive"},{name:"Cable Chest Fly",type:["gym"],muscles:"Chest Isolation",tip:"Cross at end",overload:"More weight"},{name:"Pec Deck Machine",type:["gym"],muscles:"Chest Isolation",tip:"Elbows shoulder height",overload:"Add plates"}],
+  Back:[{name:"Superman Hold",type:["home","home_gym","gym"],muscles:"Lower Back",tip:"Arms & legs together",overload:"Hold longer"},{name:"Doorframe Row",type:["home","home_gym","gym"],muscles:"Upper Back",tip:"Lean back",overload:"Increase lean"},{name:"Dumbbell Row",type:["home_gym","gym"],muscles:"Lats, Rhomboids",tip:"Back flat",overload:"More weight"},{name:"Dumbbell Deadlift",type:["home_gym","gym"],muscles:"Full Back",tip:"Hinge at hips",overload:"Add weight"},{name:"Pull-Up",type:["gym"],muscles:"Lats, Biceps",tip:"Full hang",overload:"Add weight"},{name:"Lat Pulldown",type:["gym"],muscles:"Lats",tip:"Pull to chest",overload:"Increase stack"},{name:"Seated Cable Row",type:["gym"],muscles:"Mid Back",tip:"Chest up",overload:"More weight"},{name:"Barbell Deadlift",type:["gym"],muscles:"Full Back",tip:"Bar close",overload:"5kg increments"},{name:"Face Pull",type:["gym"],muscles:"Rear Delts",tip:"Pull to forehead",overload:"More weight"}],
+  Shoulders:[{name:"Pike Push-Up",type:["home","home_gym","gym"],muscles:"Shoulders",tip:"Inverted V",overload:"Elevate feet"},{name:"Lateral Raise",type:["home","home_gym","gym"],muscles:"Side Delts",tip:"Thumbs down",overload:"Use dumbbells"},{name:"Dumbbell Shoulder Press",type:["home_gym","gym"],muscles:"All Delts",tip:"Don't flare elbows",overload:"More weight"},{name:"Dumbbell Lateral Raise",type:["home_gym","gym"],muscles:"Side Delts",tip:"Lead with elbows",overload:"Drop sets"},{name:"Arnold Press",type:["home_gym","gym"],muscles:"All Heads",tip:"Rotate wrists",overload:"More weight"},{name:"Barbell Overhead Press",type:["gym"],muscles:"Full Shoulders",tip:"Slight arc",overload:"5kg increments"},{name:"Cable Lateral Raise",type:["gym"],muscles:"Side Delts",tip:"One arm",overload:"More weight"},{name:"Upright Row",type:["gym"],muscles:"Traps",tip:"Bar close",overload:"More weight"}],
+  Biceps:[{name:"Doorframe Curl",type:["home","home_gym","gym"],muscles:"Biceps",tip:"Hold frame",overload:"More reps"},{name:"Dumbbell Bicep Curl",type:["home_gym","gym"],muscles:"Biceps",tip:"Full extend",overload:"More weight"},{name:"Hammer Curl",type:["home_gym","gym"],muscles:"Brachialis",tip:"Neutral wrist",overload:"Add weight"},{name:"Concentration Curl",type:["home_gym","gym"],muscles:"Bicep Peak",tip:"Elbow on thigh",overload:"More weight"},{name:"Barbell Curl",type:["gym"],muscles:"Full Biceps",tip:"No swinging",overload:"Add weekly"},{name:"Preacher Curl",type:["gym"],muscles:"Lower Biceps",tip:"Full extension",overload:"More weight"},{name:"Cable Curl",type:["gym"],muscles:"Constant tension",tip:"Elbows forward",overload:"Add weight"}],
+  Triceps:[{name:"Chair Dip",type:["home","home_gym","gym"],muscles:"Triceps",tip:"Lower body",overload:"Pause bottom"},{name:"Diamond Push-Up",type:["home","home_gym","gym"],muscles:"Triceps",tip:"Diamond hands",overload:"Elevate feet"},{name:"Overhead Tricep Extension",type:["home_gym","gym"],muscles:"Long Head",tip:"Elbows near ears",overload:"More weight"},{name:"Tricep Kickback",type:["home_gym","gym"],muscles:"Lateral Head",tip:"Upper arm parallel",overload:"More weight"},{name:"Skull Crusher",type:["home_gym","gym"],muscles:"All Heads",tip:"Lower slowly",overload:"Add weight"},{name:"Tricep Pushdown",type:["gym"],muscles:"Lateral Head",tip:"Full lockout",overload:"More weight"},{name:"Rope Pushdown",type:["gym"],muscles:"Split contraction",tip:"Spread at bottom",overload:"More weight"},{name:"Close Grip Bench Press",type:["gym"],muscles:"Full Triceps",tip:"Elbows in",overload:"Progressive"}],
+  Legs:[{name:"Bodyweight Squat",type:["home","home_gym","gym"],muscles:"Quads, Glutes",tip:"Knees over toes",overload:"Jump squats"},{name:"Jump Squat",type:["home","home_gym","gym"],muscles:"Explosive Legs",tip:"Land softly",overload:"Add reps"},{name:"Bulgarian Split Squat",type:["home","home_gym","gym"],muscles:"Quads, Glutes",tip:"Rear foot elevated",overload:"Add dumbbells"},{name:"Glute Bridge",type:["home","home_gym","gym"],muscles:"Glutes, Hams",tip:"Drive hips up",overload:"Single leg"},{name:"Walking Lunge",type:["home","home_gym","gym"],muscles:"Quads",tip:"Long stride",overload:"Add dumbbells"},{name:"Calf Raise",type:["home","home_gym","gym"],muscles:"Calves",tip:"Full range",overload:"Single leg"},{name:"Dumbbell Squat",type:["home_gym","gym"],muscles:"Quads, Glutes",tip:"Goblet hold",overload:"More weight"},{name:"Dumbbell Romanian Deadlift",type:["home_gym","gym"],muscles:"Hamstrings",tip:"Hinge at hips",overload:"More weight"},{name:"Barbell Squat",type:["gym"],muscles:"Full Legs",tip:"Below parallel",overload:"2.5-5kg/week"},{name:"Leg Press",type:["gym"],muscles:"Quads",tip:"Press through heels",overload:"Add plates"},{name:"Leg Curl Machine",type:["gym"],muscles:"Hamstrings",tip:"Full curl",overload:"Increase stack"},{name:"Hip Thrust",type:["gym"],muscles:"Glutes",tip:"Chin to chest",overload:"Add plates"}],
+  Core:[{name:"Plank",type:["home","home_gym","gym"],muscles:"Full Core",tip:"Neutral spine",overload:"Longer hold"},{name:"Side Plank",type:["home","home_gym","gym"],muscles:"Obliques",tip:"Hip off floor",overload:"Hip dips"},{name:"Bicycle Crunch",type:["home","home_gym","gym"],muscles:"Obliques, Abs",tip:"Rotate fully",overload:"Add reps"},{name:"Leg Raise",type:["home","home_gym","gym"],muscles:"Lower Abs",tip:"Legs straight",overload:"Ankle weights"},{name:"Mountain Climber",type:["home","home_gym","gym"],muscles:"Core, Cardio",tip:"Hips low",overload:"Faster"},{name:"Hollow Body Hold",type:["home","home_gym","gym"],muscles:"Full Core",tip:"Back pressed down",overload:"Longer"},{name:"Russian Twist",type:["home","home_gym","gym"],muscles:"Obliques",tip:"Lean back",overload:"Hold weight"},{name:"Ab Wheel Rollout",type:["home_gym","gym"],muscles:"Full Core",tip:"Don't drop hips",overload:"Extend range"},{name:"Cable Crunch",type:["gym"],muscles:"Upper Abs",tip:"Round spine",overload:"More weight"},{name:"Hanging Knee Raise",type:["gym"],muscles:"Lower Abs",tip:"Don't swing",overload:"Straight legs"}],
+  "Full Body":[{name:"Burpee",type:["home","home_gym","gym"],muscles:"Full Body",tip:"Controlled drop",overload:"Add pace"},{name:"Jump Rope",type:["home","home_gym","gym"],muscles:"Cardio, Calves",tip:"Wrists rotate",overload:"Double unders"},{name:"Bear Crawl",type:["home","home_gym","gym"],muscles:"Stability",tip:"Knees 1 inch up",overload:"Distance"},{name:"Dumbbell Thruster",type:["home_gym","gym"],muscles:"Full Body",tip:"Squat + press",overload:"More weight"},{name:"Kettlebell Swing",type:["home_gym","gym"],muscles:"Glutes, Core",tip:"Hinge not squat",overload:"More weight"},{name:"Battle Ropes",type:["gym"],muscles:"Cardio, Shoulders",tip:"Core tight",overload:"Duration"},{name:"Rowing Machine",type:["gym"],muscles:"Back, Legs",tip:"Legs first",overload:"Pace"},{name:"Treadmill Running",type:["gym"],muscles:"Cardio",tip:"Good posture",overload:"Speed/incline"}],
+  Yoga:[{name:"Surya Namaskar",type:["home","home_gym","gym"],muscles:"Full Body",tip:"Sync breath",overload:"More rounds"},{name:"Downward Dog",type:["home","home_gym","gym"],muscles:"Hamstrings",tip:"Heels toward floor",overload:"Hold longer"},{name:"Warrior I",type:["home","home_gym","gym"],muscles:"Hips, Quads",tip:"Knee over ankle",overload:"Deeper"},{name:"Warrior II",type:["home","home_gym","gym"],muscles:"Legs, Core",tip:"Arms parallel",overload:"Longer"},{name:"Triangle Pose",type:["home","home_gym","gym"],muscles:"Hamstrings",tip:"Hips open",overload:"Deeper twist"},{name:"Pigeon Pose",type:["home","home_gym","gym"],muscles:"Hip Flexors",tip:"Hips squared",overload:"Fold forward"},{name:"Bridge Pose",type:["home","home_gym","gym"],muscles:"Glutes, Spine",tip:"Press heels",overload:"Single leg"},{name:"Boat Pose",type:["home","home_gym","gym"],muscles:"Core",tip:"Spine tall",overload:"Straight legs"},{name:"Cobra Pose",type:["home","home_gym","gym"],muscles:"Lower Back",tip:"Pelvis on floor",overload:"Upward Dog"},{name:"Cat-Cow",type:["home","home_gym","gym"],muscles:"Spine",tip:"Sync breath",overload:"More rounds"}],
+};
+const SPLIT_PLANS={
+  ppl:{name:"Push/Pull/Legs",days:["Push","Pull","Legs","Push","Pull","Legs"],map:{Push:["Chest","Shoulders","Triceps"],Pull:["Back","Biceps"],Legs:["Legs","Core"]}},
+  ul:{name:"Upper/Lower",days:["Upper","Lower","Upper","Lower"],map:{Upper:["Chest","Back","Shoulders","Biceps","Triceps"],Lower:["Legs","Core"]}},
+  ulppl:{name:"ULPPL",days:["Upper","Lower","Push","Pull","Legs"],map:{Upper:["Chest","Back","Shoulders"],Lower:["Legs","Core"],Push:["Chest","Shoulders","Triceps"],Pull:["Back","Biceps"],Legs:["Legs","Core"]}},
+  bro:{name:"Bro Split",days:["Chest","Back","Shoulders","Arms","Legs"],map:{Chest:["Chest"],Back:["Back"],Shoulders:["Shoulders"],Arms:["Biceps","Triceps"],Legs:["Legs","Core"]}},
+  fullbody:{name:"Full Body",days:["Full Body","Full Body","Full Body"],map:{"Full Body":["Chest","Back","Legs","Core"]}},
+  arnold:{name:"Arnold Split",days:["Chest & Back","Shoulders & Arms","Legs","Chest & Back","Shoulders & Arms","Legs"],map:{"Chest & Back":["Chest","Back"],"Shoulders & Arms":["Shoulders","Biceps","Triceps"],Legs:["Legs","Core"]}},
+  push_pull:{name:"Push/Pull",days:["Push","Pull","Push","Pull"],map:{Push:["Chest","Shoulders","Triceps"],Pull:["Back","Biceps","Core"]}},
+};
+const WATER_GOAL=3000;
+const STORAGE_KEY="fitindia_v3";
+const ONBOARDING=[
+  {icon:"🏋️",title:"Welcome to FitIndia Pro",body:"Your complete diet & workout companion, built for Indian lifestyles."},
+  {icon:"🥗",title:"Track Your Diet",body:"Log 90+ Indian foods. We track calories, protein, carbs and fats against your personal targets."},
+  {icon:"💪",title:"Plan Your Workouts",body:"7 splits (PPL, ULPPL, Bro Split & more), 80+ exercises. Sets, reps, weight & progressive overload built in."},
+  {icon:"🔥",title:"Build Daily Streaks",body:"Earn streaks for diet, workout and water goals. History tab shows your calendar and full logs from Day 1."},
+  {icon:"💾",title:"Your Data is Safe",body:"Export your data as a backup JSON anytime. Import it back if you clear your browser or switch devices."},
+];
+
+function toDateKey(d){return d.toISOString().split("T")[0];}
+function calcBMR(w,h,a,g){return g==="male"?10*w+6.25*h-5*a+5:10*w+6.25*h-5*a-161;}
+function calcBMI(w,h){return +(w/((h/100)**2)).toFixed(1);}
+function bmiCat(b){return b<18.5?"Underweight":b<25?"Normal":b<30?"Overweight":"Obese";}
+function loadData(){try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null;}catch{return null;}}
+function saveData(d){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch{}}
+function genPlan(profile){
+  const rest=parseInt(profile.restDays)||2,work=7-rest;
+  const sp=SPLIT_PLANS[profile.split]||SPLIT_PLANS.fullbody;
+  const wt=profile.workoutEnv||"home";
+  const names=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const sched=[];let wi=0;
+  for(let d=0;d<7;d++){
+    if(d>=work){sched.push({day:names[d],type:"Rest",exercises:[]});continue;}
+    const sess=sp.days[wi%sp.days.length];
+    const mgs=sp.map[sess]||[];
+    const exs=[];
+    mgs.forEach(mg=>(EXERCISES[mg]||[]).filter(e=>e.type.includes(wt)).slice(0,3).forEach(e=>exs.push({...e,muscle:mg})));
+    sched.push({day:names[d],type:sess,exercises:exs.slice(0,8)});wi++;
+  }
+  return{splitName:sp.name,schedule:sched};
+}
+
+function App(){
+  const [theme,setTheme]=useState(()=>localStorage.getItem("fitindia_theme")||"dark");
+  const T=THEMES[theme];
+  useEffect(()=>localStorage.setItem("fitindia_theme",theme),[theme]);
+
+  const today=toDateKey(new Date());
+  const nowTime=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+  const todayLabel=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"});
+
+  const [appData,setAppData]=useState(()=>loadData()||{profile:null,macros:null,autoPlan:null,history:{},streaks:{diet:0,workout:0,water:0,overall:0},startDate:null,weightLog:[]});
+  const {profile,macros,autoPlan,history,streaks,startDate,weightLog=[]}=appData;
+
+  const [screen,setScreen]=useState(()=>loadData()?.profile?"main":"onboarding");
+  const [activeTab,setActiveTab]=useState("diet");
+  const [onbStep,setOnbStep]=useState(0);
+  const [setupStep,setSetupStep]=useState(0);
+  const [showConfirm,setShowConfirm]=useState(null);
+  const [importMsg,setImportMsg]=useState("");
+  const fileRef=useRef();
+  const [showInstall,setShowInstall]=useState(false);
+  const deferredPrompt=useRef(null);
+
+  useEffect(()=>{
+    window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt.current=e;setShowInstall(true);});
+    // Register SW
+    if("serviceWorker" in navigator){
+      const swCode=`
+const CACHE="fitindia-v1";
+const ASSETS=["/"];
+self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+self.addEventListener("fetch",e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const clone=res.clone();caches.open(CACHE).then(c=>c.put(e.request,clone));return res;}).catch(()=>caches.match("/")))));
+      `;
+      const blob=new Blob([swCode],{type:"application/javascript"});
+      const swUrl=URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).catch(()=>{});
+    }
+  },[]);
+
+  const [draft,setDraft]=useState(profile||{weight:"",height:"",age:"",gender:"male",goal:"muscle",bodyType:"mesomorph",physique:"athletic",weightLossKg:"",targetWeeks:"12",restDays:"2",split:"ulppl",workoutEnv:"home",planMode:"auto"});
+  const isLoss=["mild_loss","loss","aggressive_loss"].includes(draft.goal||profile?.goal||"");
+  const isMuscle=(draft.goal||profile?.goal)==="muscle";
+
+  function update(patch){setAppData(prev=>{const n={...prev,...patch};saveData(n);return n;});}
+  function updateToday(patch){setAppData(prev=>{const td={...prev.history[today],...patch};const n={...prev,history:{...prev.history,[today]:td}};saveData(n);return n;});}
+
+  const td=history[today]||{foodLog:[],water:0,waterLog:[],workoutLog:[]};
+  const foodLog=td.foodLog||[];
+  const water=td.water||0;
+  const waterLog=td.waterLog||[];
+  const workoutLog=td.workoutLog||[];
+
+  const totalCal=foodLog.reduce((s,f)=>s+f.cal,0);
+  const totalProtein=foodLog.reduce((s,f)=>s+f.protein,0);
+  const totalCarbs=foodLog.reduce((s,f)=>s+(f.carbs||0),0);
+  const totalFat=foodLog.reduce((s,f)=>s+(f.fat||0),0);
+  const waterPct=Math.min(water/WATER_GOAL,1);
+  const calPct=macros?totalCal/macros.targetCal:0;
+  const protPct=macros?totalProtein/(macros.protein||1):0;
+  const calOver=isLoss&&macros&&totalCal>macros.targetCal;
+
+  const burnedCal=useMemo(()=>{
+    if(!macros||!workoutLog.length)return 0;
+    const w=macros.weight||70;
+    return workoutLog.reduce((t,ex)=>{const met=EX_MET[ex.name]||5;const mins=ex.sets.length*3;return t+Math.round((met*3.5*w/200)*mins);},0);
+  },[workoutLog,macros]);
+
+  const score=useMemo(()=>{
+    if(!macros)return 0;
+    const cD=totalCal-macros.targetCal,cP=Math.abs(cD)/macros.targetCal;
+    const cS=(isLoss&&cD>0)?(cP<=0.05?36:cP<=0.1?24:12):(cP<=0.05?40:cP<=0.1?32:cP<=0.2?24:cP<=0.3?16:8);
+    const pS=(p=>p>=1?35:p>=0.8?28:p>=0.6?21:p>=0.4?14:7)(protPct);
+    const wS=(p=>p>=1?25:p>=0.8?20:p>=0.6?15:p>=0.4?10:5)(waterPct);
+    return Math.min(100,cS+pS+wS);
+  },[macros,totalCal,totalProtein,water,isLoss,protPct,waterPct]);
+
+  useEffect(()=>{
+    if(!macros)return;
+    const workoutDone=workoutLog.length>0;
+    setAppData(prev=>{
+      const newH={...prev.history,[today]:{...prev.history[today],score,workoutDone,cal:totalCal,protein:Math.round(totalProtein),water,burned:burnedCal}};
+      let ds=0,ws=0,wts=0,os=0;
+      for(let i=0;i<60;i++){
+        const d=new Date();d.setDate(d.getDate()-i);
+        const dk=toDateKey(d);const rec=newH[dk];
+        if(!rec&&i>0)break;if(!rec)continue;
+        const dOk=(rec.score||0)>=60,wOk=!!rec.workoutDone,wtOk=(rec.water||0)>=WATER_GOAL;
+        if(dOk)ds++;else if(i>0){ds=0;break;}
+        if(wOk)ws++;else if(i>0)ws=0;
+        if(wtOk)wts++;else if(i>0)wts=0;
+        if(dOk&&wOk&&wtOk)os++;else if(i>0)os=0;
+      }
+      const n={...prev,history:newH,streaks:{diet:ds,workout:ws,water:wts,overall:os}};
+      saveData(n);return n;
+    });
+  },[score,workoutLog.length,water,burnedCal,today]);
+
+  // Food
+  const [foodSearch,setFoodSearch]=useState("");
+  const [foodCat,setFoodCat]=useState("All");
+  const [qty,setQty]=useState({});
+  const cats=["All",...new Set(FOODS.map(f=>f.cat))];
+  const filteredFoods=useMemo(()=>FOODS.filter(f=>(foodCat==="All"||f.cat===foodCat)&&f.name.toLowerCase().includes(foodSearch.toLowerCase())),[foodSearch,foodCat]);
+
+  function addFood(food){
+    const q=parseFloat(qty[food.name])||1;
+    const newLog=[...foodLog];const idx=newLog.findIndex(l=>l.name===food.name);
+    if(idx>=0){const l=newLog[idx];newLog[idx]={...l,qty:+(l.qty+q).toFixed(1),cal:Math.round((l.qty+q)*food.cal),protein:Math.round((l.qty+q)*food.protein*10)/10,carbs:Math.round((l.qty+q)*(food.carbs||0)),fat:Math.round((l.qty+q)*(food.fat||0)*10)/10};}
+    else newLog.push({...food,qty:q,cal:Math.round(q*food.cal),protein:Math.round(q*food.protein*10)/10,carbs:Math.round(q*(food.carbs||0)),fat:Math.round(q*(food.fat||0)*10)/10});
+    updateToday({foodLog:newLog});setQty(p=>({...p,[food.name]:""}));
+  }
+
+  // Water
+  const [waterInput,setWaterInput]=useState("");
+  function addWater(ml){const a=ml||parseInt(waterInput);if(!a||a<=0)return;updateToday({water:water+a,waterLog:[...waterLog,{id:Date.now(),ml:a}]});if(!ml)setWaterInput("");}
+  function removeWater(e){updateToday({water:Math.max(0,water-e.ml),waterLog:waterLog.filter(x=>x.id!==e.id)});}
+
+  // Workout
+  const [wType,setWType]=useState(profile?.workoutEnv||"home");
+  const [selMuscle,setSelMuscle]=useState("Chest");
+  const [exSearch,setExSearch]=useState("");
+  const [expandedEx,setExpandedEx]=useState(null);
+  const [histTab,setHistTab]=useState("overview");
+  const [weightEntry,setWeightEntry]=useState("");
+  const filteredEx=useMemo(()=>(EXERCISES[selMuscle]||[]).filter(e=>e.type.includes(wType)&&e.name.toLowerCase().includes(exSearch.toLowerCase())),[selMuscle,wType,exSearch]);
+  function addExercise(ex){if(!workoutLog.find(w=>w.name===ex.name))updateToday({workoutLog:[...workoutLog,{name:ex.name,sets:[{reps:10,weight:0}]}]});}
+  function addSet(name){updateToday({workoutLog:workoutLog.map(w=>w.name===name?{...w,sets:[...w.sets,{reps:10,weight:0}]}:w)});}
+  function removeSet(name,i){updateToday({workoutLog:workoutLog.map(w=>w.name===name?{...w,sets:w.sets.filter((_,j)=>j!==i)}:w)});}
+  function updSet(name,i,f,v){updateToday({workoutLog:workoutLog.map(w=>w.name===name?{...w,sets:w.sets.map((s,j)=>j===i?{...s,[f]:v}:s)}:w)});}
+  const totalSets=workoutLog.reduce((s,e)=>s+e.sets.length,0);
+
+  function addWeightLog(){const w=parseFloat(weightEntry);if(!w)return;const entry={date:today,weight:w};const nl=[...(weightLog||[]).filter(e=>e.date!==today),entry].sort((a,b)=>a.date.localeCompare(b.date));update({weightLog:nl});setWeightEntry("");}
+
+  function exportData(){
+    const blob=new Blob([JSON.stringify(appData,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);const a=document.createElement("a");
+    a.href=url;a.download=`fitindia_backup_${today}.json`;a.click();URL.revokeObjectURL(url);
+  }
+  function importData(e){
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!d.profile)throw new Error();setAppData(d);saveData(d);setImportMsg("✅ Imported!");setScreen("main");}catch{setImportMsg("❌ Invalid file");}};
+    reader.readAsText(file);
+  }
+
+  function handleStart(){
+    const w=parseFloat(draft.weight),h=parseFloat(draft.height),a=parseInt(draft.age);
+    if(!w||!h||!a){alert("Fill weight, height and age!");return;}
+    const bmr=calcBMR(w,h,a,draft.gender);
+    const maintenance=Math.round(bmr*1.55);
+    const g=GOALS.find(x=>x.key===draft.goal);
+    const targetCal=Math.max(1200,maintenance+g.calOffset);
+    const protein=Math.round(w*g.proteinMult);
+    const bmi=calcBMI(w,h);
+    const newMacros={maintenance,targetCal,protein,weight:w,goal:g,bodyType:draft.bodyType,bmi,bmiCat:bmiCat(bmi)};
+    const plan=draft.planMode==="auto"?genPlan(draft):null;
+    setAppData(prev=>{const n={...prev,profile:draft,macros:newMacros,autoPlan:plan,startDate:prev.startDate||today};saveData(n);return n;});
+    setScreen("main");setActiveTab("diet");setShowConfirm(null);
+  }
+
+  const scColor=s=>s>=80?"#22c55e":s>=60?"#f59e0b":"#ef4444";
+  const daysSince=startDate?Math.floor((new Date()-new Date(startDate+"T00:00:00"))/86400000)+1:1;
+  const histDays=Object.keys(history).sort((a,b)=>b.localeCompare(a)).slice(0,30);
+  const SETUP_STEPS=["Details","Goal","Physique","Workout","Plan"];
+
+  const cs={
+    app:{minHeight:"100vh",background:T.bg,color:T.text,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",paddingBottom:"24px",transition:"background 0.3s"},
+    card:{background:T.card,borderRadius:"14px",padding:"14px",marginBottom:"10px",border:`1px solid ${T.border}`},
+    h2:{fontSize:"11px",fontWeight:700,color:T.muted,marginBottom:"10px",marginTop:0,textTransform:"uppercase",letterSpacing:"1.2px"},
+    inp:{background:T.inp,border:`1px solid ${T.border}`,borderRadius:"8px",padding:"8px 10px",color:T.text,fontSize:"14px",width:"100%",boxSizing:"border-box"},
+    sel:{background:T.inp,border:`1px solid ${T.border}`,borderRadius:"8px",padding:"8px 10px",color:T.text,fontSize:"14px",width:"100%",boxSizing:"border-box"},
+    btn:{background:"linear-gradient(135deg,#38bdf8,#818cf8)",border:"none",borderRadius:"10px",padding:"12px",color:"#fff",fontWeight:700,fontSize:"15px",cursor:"pointer",width:"100%"},
+    bsm:{background:T.card,border:`1px solid ${T.border}`,borderRadius:"8px",padding:"5px 10px",color:T.sub,fontSize:"12px",cursor:"pointer"},
+    badd:{background:"#22c55e",border:"none",borderRadius:"8px",padding:"5px 10px",color:"#fff",fontWeight:700,fontSize:"12px",cursor:"pointer",whiteSpace:"nowrap"},
+    prog:{height:"11px",borderRadius:"99px",background:T.inp,overflow:"hidden",marginTop:"5px"},
+    tag:{fontSize:"11px",color:T.muted,marginTop:"2px"},
+    row:{display:"flex",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.border}`,gap:"8px"},
+    lbl:{fontSize:"12px",color:T.sub,marginBottom:"5px"},
+  };
+
+  const Ring=({pct,color,size=110,stroke=10})=>{
+    const r=(size-stroke)/2,circ=2*Math.PI*r;
+    return React.createElement("svg",{width:size,height:size},
+      React.createElement("circle",{cx:size/2,cy:size/2,r,fill:"none",stroke:T.inp,strokeWidth:stroke}),
+      React.createElement("circle",{cx:size/2,cy:size/2,r,fill:"none",stroke:color,strokeWidth:stroke,strokeDasharray:circ,strokeDashoffset:circ*(1-Math.min(pct,1)),strokeLinecap:"round",transform:`rotate(-90 ${size/2} ${size/2})`,style:{transition:"stroke-dashoffset 0.5s"}})
+    );
+  };
+
+  const Modal=({children})=>React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}},
+    React.createElement("div",{style:{background:T.card,borderRadius:"16px",padding:"20px",width:"100%",maxWidth:"340px",border:`1px solid ${T.border}`}},children)
+  );
+
+  // ── ONBOARDING ──
+  if(screen==="onboarding"){
+    const step=ONBOARDING[onbStep];
+    return React.createElement("div",{style:{...cs.app,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"24px"}},
+      React.createElement("div",{style:{textAlign:"center",maxWidth:"340px",width:"100%"}},
+        React.createElement("div",{style:{fontSize:"60px",marginBottom:"16px"}},step.icon),
+        React.createElement("div",{style:{fontSize:"22px",fontWeight:900,background:"linear-gradient(135deg,#38bdf8,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:"12px"}},step.title),
+        React.createElement("div",{style:{color:T.sub,fontSize:"14px",lineHeight:"1.7",marginBottom:"28px"}},step.body),
+        React.createElement("div",{style:{display:"flex",gap:"6px",justifyContent:"center",marginBottom:"24px"}},
+          ONBOARDING.map((_,i)=>React.createElement("div",{key:i,style:{width:i===onbStep?24:8,height:8,borderRadius:4,background:i===onbStep?"#38bdf8":T.border,transition:"width 0.3s"}}))
+        ),
+        React.createElement("button",{style:cs.btn,onClick:()=>onbStep<ONBOARDING.length-1?setOnbStep(s=>s+1):setScreen("setup")},onbStep<ONBOARDING.length-1?"Next →":"Get Started 🚀"),
+        onbStep>0&&React.createElement("button",{style:{...cs.bsm,marginTop:"10px",width:"100%",background:"transparent",border:"none"},onClick:()=>setOnbStep(s=>s-1)},"← Back")
+      )
+    );
+  }
+
+  // ── SETUP ──
+  if(screen==="setup"){
+    const bmi=draft.weight&&draft.height?calcBMI(parseFloat(draft.weight),parseFloat(draft.height)):null;
+    return React.createElement("div",{style:{...cs.app,padding:"16px"}},
+      // Progress
+      React.createElement("div",{style:{marginBottom:"20px"}},
+        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}},
+          React.createElement("div",{style:{fontSize:"16px",fontWeight:900,background:"linear-gradient(135deg,#38bdf8,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"FitIndia Pro"),
+          React.createElement("div",{style:{fontSize:"12px",color:T.muted}},`Step ${setupStep+1} of ${SETUP_STEPS.length}`)
+        ),
+        React.createElement("div",{style:{height:6,background:T.border,borderRadius:99,overflow:"hidden"}},
+          React.createElement("div",{style:{height:"100%",width:`${((setupStep+1)/SETUP_STEPS.length)*100}%`,background:"linear-gradient(90deg,#38bdf8,#818cf8)",borderRadius:99,transition:"width 0.4s"}})
+        ),
+        React.createElement("div",{style:{display:"flex",gap:4,marginTop:8}},
+          SETUP_STEPS.map((s,i)=>React.createElement("div",{key:i,style:{flex:1,fontSize:10,textAlign:"center",color:i<=setupStep?"#38bdf8":T.muted,fontWeight:i===setupStep?700:400}},s))
+        )
+      ),
+
+      // Step content
+      setupStep===0&&React.createElement("div",{style:cs.card},
+        React.createElement("div",{style:cs.h2},"👤 Your Details"),
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
+          ...[["Weight (kg)","weight","70"],["Height (cm)","height","175"],["Age","age","22"]].map(([lbl,k,ph])=>
+            React.createElement("div",{key:k},
+              React.createElement("div",{style:cs.lbl},lbl),
+              React.createElement("input",{style:cs.inp,type:"number",placeholder:ph,value:draft[k],onChange:e=>setDraft(p=>({...p,[k]:e.target.value}))})
+            )
+          ),
+          React.createElement("div",{},
+            React.createElement("div",{style:cs.lbl},"Gender"),
+            React.createElement("select",{style:cs.sel,value:draft.gender,onChange:e=>setDraft(p=>({...p,gender:e.target.value}))},
+              React.createElement("option",{value:"male"},"Male"),
+              React.createElement("option",{value:"female"},"Female")
+            )
+          )
+        ),
+        bmi&&React.createElement("div",{style:{marginTop:12,background:T.inp,borderRadius:10,padding:10,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+          React.createElement("div",{},
+            React.createElement("div",{style:{fontSize:11,color:T.muted}},"Your BMI"),
+            React.createElement("div",{style:{fontSize:22,fontWeight:900,color:bmi<18.5?"#38bdf8":bmi<25?"#22c55e":bmi<30?"#f59e0b":"#ef4444"}},bmi)
+          ),
+          React.createElement("div",{style:{textAlign:"right"}},
+            React.createElement("div",{style:{fontSize:13,fontWeight:700,color:bmi<18.5?"#38bdf8":bmi<25?"#22c55e":bmi<30?"#f59e0b":"#ef4444"}},bmiCat(bmi)),
+            React.createElement("div",{style:{fontSize:11,color:T.muted}},"BMI Category")
+          )
+        )
+      ),
+
+      setupStep===1&&React.createElement("div",{style:cs.card},
+        React.createElement("div",{style:cs.h2},"🎯 Your Goal"),
+        ...GOALS.map(g=>React.createElement("div",{key:g.key,onClick:()=>setDraft(p=>({...p,goal:g.key})),style:{display:"flex",alignItems:"center",gap:10,background:draft.goal===g.key?T.inp:"transparent",border:`2px solid ${draft.goal===g.key?g.color:T.border}`,borderRadius:10,padding:"8px 12px",cursor:"pointer",marginBottom:6}},
+          React.createElement("div",{style:{width:11,height:11,borderRadius:"50%",border:`3px solid ${g.color}`,background:draft.goal===g.key?g.color:"transparent",flexShrink:0}}),
+          React.createElement("div",{style:{fontSize:13,fontWeight:700,color:draft.goal===g.key?g.color:T.text}},g.label)
+        )),
+        isLoss&&React.createElement("div",{style:{marginTop:10}},
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}},
+            React.createElement("div",{},React.createElement("div",{style:cs.lbl},"kg to lose"),React.createElement("input",{style:cs.inp,type:"number",placeholder:"10",value:draft.weightLossKg,onChange:e=>setDraft(p=>({...p,weightLossKg:e.target.value}))})),
+            React.createElement("div",{},React.createElement("div",{style:cs.lbl},"In weeks"),React.createElement("input",{style:cs.inp,type:"number",placeholder:"12",value:draft.targetWeeks,onChange:e=>setDraft(p=>({...p,targetWeeks:e.target.value}))}))
+          ),
+          React.createElement("div",{style:cs.lbl},"Body Type"),
+          React.createElement("div",{style:{display:"flex",gap:6}},
+            ...Object.entries(BURN_TARGETS).map(([k,bt])=>React.createElement("div",{key:k,onClick:()=>setDraft(p=>({...p,bodyType:k})),style:{flex:1,textAlign:"center",background:draft.bodyType===k?T.inp:"transparent",border:`2px solid ${draft.bodyType===k?"#f59e0b":T.border}`,borderRadius:10,padding:8,cursor:"pointer"}},
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:draft.bodyType===k?"#f59e0b":T.sub}},bt.label),
+              React.createElement("div",{style:{fontSize:10,color:"#f59e0b"}},`${bt.cal} kcal`)
+            ))
+          )
+        ),
+        isMuscle&&React.createElement("div",{style:{marginTop:10}},
+          React.createElement("div",{style:cs.lbl},"Target weeks"),
+          React.createElement("input",{style:cs.inp,type:"number",placeholder:"16",value:draft.targetWeeks,onChange:e=>setDraft(p=>({...p,targetWeeks:e.target.value}))})
+        )
+      ),
+
+      setupStep===2&&React.createElement("div",{style:cs.card},
+        React.createElement("div",{style:cs.h2},"🏆 Target Physique"),
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+          ...(isMuscle?PHYSIQUES_MUSCLE:PHYSIQUES_LOSS).map(ph=>React.createElement("div",{key:ph.key,onClick:()=>setDraft(p=>({...p,physique:ph.key})),style:{background:draft.physique===ph.key?T.inp:"transparent",border:`2px solid ${draft.physique===ph.key?"#a78bfa":T.border}`,borderRadius:10,padding:10,cursor:"pointer"}},
+            React.createElement("div",{style:{fontSize:13,fontWeight:700,color:draft.physique===ph.key?"#a78bfa":T.text}},ph.label),
+            React.createElement("div",{style:{fontSize:11,color:T.muted,marginTop:3}},ph.desc)
+          ))
+        )
+      ),
+
+      setupStep===3&&React.createElement("div",{style:cs.card},
+        React.createElement("div",{style:cs.h2},"🏋️ Workout Setup"),
+        React.createElement("div",{style:cs.lbl},"Environment"),
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:14}},
+          ...[["home","🏠 Home","No equip"],["home_gym","🏋️ Home Gym","Basic gear"],["gym","🏟️ Gym","Full equip"]].map(([k,lbl,sub])=>React.createElement("div",{key:k,onClick:()=>setDraft(p=>({...p,workoutEnv:k})),style:{textAlign:"center",background:draft.workoutEnv===k?T.inp:"transparent",border:`2px solid ${draft.workoutEnv===k?"#38bdf8":T.border}`,borderRadius:10,padding:8,cursor:"pointer"}},
+            React.createElement("div",{style:{fontSize:12,fontWeight:700,color:draft.workoutEnv===k?"#38bdf8":T.sub}},lbl),
+            React.createElement("div",{style:{fontSize:10,color:T.muted}},sub)
+          ))
+        ),
+        React.createElement("div",{style:cs.lbl},"Workout Split"),
+        React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}},
+          ...SPLITS.map(sp=>React.createElement("div",{key:sp.key,onClick:()=>setDraft(p=>({...p,split:sp.key})),style:{padding:"5px 10px",background:draft.split===sp.key?"#38bdf8":T.inp,borderRadius:20,cursor:"pointer",fontSize:11,fontWeight:700,color:draft.split===sp.key?"#0f172a":T.muted,border:`1px solid ${draft.split===sp.key?"#38bdf8":T.border}`}},sp.label))
+        ),
+        draft.split&&React.createElement("div",{style:{fontSize:11,color:T.muted,background:T.inp,borderRadius:8,padding:8,marginBottom:14}},SPLITS.find(s=>s.key===draft.split)?.desc),
+        React.createElement("div",{style:cs.lbl},"Rest days/week"),
+        React.createElement("select",{style:cs.sel,value:draft.restDays,onChange:e=>setDraft(p=>({...p,restDays:e.target.value}))},
+          ...[1,2,3,4].map(n=>React.createElement("option",{key:n,value:n},`${n} day${n>1?"s":""}`))
+        )
+      ),
+
+      setupStep===4&&React.createElement("div",{style:cs.card},
+        React.createElement("div",{style:cs.h2},"🤖 Plan Mode"),
+        React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}},
+          ...[["auto","🤖 Auto Plan","App builds everything"],["custom","✏️ Custom","You set it all"]].map(([k,lbl,sub])=>React.createElement("div",{key:k,onClick:()=>setDraft(p=>({...p,planMode:k})),style:{background:draft.planMode===k?T.inp:"transparent",border:`2px solid ${draft.planMode===k?"#818cf8":T.border}`,borderRadius:10,padding:12,cursor:"pointer"}},
+            React.createElement("div",{style:{fontSize:14,fontWeight:700,color:draft.planMode===k?"#818cf8":T.text}},lbl),
+            React.createElement("div",{style:{fontSize:11,color:T.muted,marginTop:3}},sub)
+          ))
+        ),
+        React.createElement("div",{style:{borderTop:`1px solid ${T.border}`,paddingTop:14}},
+          React.createElement("div",{style:{fontSize:12,color:T.sub,marginBottom:8}},"📂 Have a backup? Import it:"),
+          React.createElement("button",{style:{...cs.bsm,width:"100%",textAlign:"center"},onClick:()=>fileRef.current.click()},"Import Backup JSON"),
+          React.createElement("input",{ref:fileRef,type:"file",accept:".json",style:{display:"none"},onChange:importData}),
+          importMsg&&React.createElement("div",{style:{fontSize:12,color:"#22c55e",marginTop:6,textAlign:"center"}},importMsg)
+        )
+      ),
+
+      React.createElement("div",{style:{display:"flex",gap:8,marginTop:8}},
+        setupStep>0&&React.createElement("button",{style:{...cs.bsm,flex:1,padding:10,textAlign:"center"},onClick:()=>setSetupStep(s=>s-1)},"← Back"),
+        setupStep<SETUP_STEPS.length-1
+          ?React.createElement("button",{style:{...cs.btn,flex:setupStep>0?2:1},onClick:()=>setSetupStep(s=>s+1)},"Next →")
+          :React.createElement("button",{style:{...cs.btn,flex:2},onClick:handleStart},"Start My Journey 🚀")
+      )
+    );
+  }
+
+  // ── MAIN APP ──
+  return React.createElement("div",{style:cs.app},
+    // Confirm modal
+    showConfirm&&React.createElement(Modal,{},
+      React.createElement("div",{style:{textAlign:"center",marginBottom:16}},
+        React.createElement("div",{style:{fontSize:32,marginBottom:8}},showConfirm==="edit"?"✏️":"⚠️"),
+        React.createElement("div",{style:{fontSize:16,fontWeight:700,color:T.text,marginBottom:6}},showConfirm==="edit"?"Edit Profile?":"Reset All Data?"),
+        React.createElement("div",{style:{fontSize:13,color:T.sub}},showConfirm==="edit"?"Your daily logs are kept. Only profile and macros will update.":"This permanently deletes ALL data including history and streaks.")
+      ),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("button",{style:{...cs.bsm,flex:1,padding:10,textAlign:"center"},onClick:()=>setShowConfirm(null)},"Cancel"),
+        React.createElement("button",{style:{flex:2,padding:10,border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",background:showConfirm==="reset"?"#ef4444":"linear-gradient(135deg,#38bdf8,#818cf8)",color:"#fff"},
+          onClick:()=>{
+            if(showConfirm==="edit"){setDraft({...profile});setSetupStep(0);setScreen("setup");setShowConfirm(null);}
+            else{localStorage.removeItem(STORAGE_KEY);window.location.reload();}
+          }},showConfirm==="edit"?"Edit Profile":"Yes, Reset")
+      )
+    ),
+
+    // Install banner
+    showInstall&&React.createElement("div",{style:{background:"linear-gradient(135deg,#38bdf8,#818cf8)",padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+      React.createElement("div",{style:{fontSize:12,color:"#fff",fontWeight:600}},"📱 Install FitIndia Pro on your phone!"),
+      React.createElement("div",{style:{display:"flex",gap:6}},
+        React.createElement("button",{style:{background:"#fff",border:"none",borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer",color:"#0f172a"},
+          onClick:()=>{if(deferredPrompt.current){deferredPrompt.current.prompt();setShowInstall(false);}}
+        },"Install"),
+        React.createElement("button",{style:{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,padding:"4px 8px",fontSize:11,color:"#fff",cursor:"pointer"},onClick:()=>setShowInstall(false)},"✕")
+      )
+    ),
+
+    // Header
+    React.createElement("div",{style:{position:"sticky",top:0,zIndex:100,background:T.bg,borderBottom:`1px solid ${T.border}`,padding:"10px 14px"}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
+        React.createElement("div",{},
+          React.createElement("div",{style:{fontSize:15,fontWeight:900,background:"linear-gradient(135deg,#38bdf8,#818cf8)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"FitIndia Pro"),
+          React.createElement("div",{style:{fontSize:10,color:T.muted}},`${todayLabel} · ${nowTime}`)
+        ),
+        React.createElement("div",{style:{display:"flex",gap:5,alignItems:"center"}},
+          React.createElement("div",{style:{background:T.card,borderRadius:8,padding:"4px 8px",textAlign:"center",border:`1px solid ${T.border}`}},
+            React.createElement("div",{style:{fontSize:13}},"🔥"),
+            React.createElement("div",{style:{fontSize:10,fontWeight:700,color:"#f59e0b"}},`${streaks.overall}d`)
+          ),
+          React.createElement("button",{style:{...cs.bsm,fontSize:12,padding:"6px 10px"},onClick:()=>setTheme(t=>t==="dark"?"light":"dark")},theme==="dark"?"☀️":"🌙"),
+          React.createElement("button",{style:{...cs.bsm,fontSize:12,padding:"6px 10px",background:"#334155",color:"#e2e8f0",border:"none"},onClick:()=>setShowConfirm("edit")},"✏️ Edit")
+        )
+      ),
+      macros?.bmi&&React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center",marginBottom:6}},
+        React.createElement("div",{style:{fontSize:11,color:T.muted}},`BMI: `),
+        React.createElement("b",{style:{color:macros.bmi<18.5?"#38bdf8":macros.bmi<25?"#22c55e":macros.bmi<30?"#f59e0b":"#ef4444",fontSize:11}},`${macros.bmi} (${macros.bmiCat})`),
+        React.createElement("div",{style:{flex:1,height:4,background:T.border,borderRadius:99,overflow:"hidden"}},
+          React.createElement("div",{style:{height:"100%",width:`${Math.min((macros.bmi/40)*100,100)}%`,background:macros.bmi<18.5?"#38bdf8":macros.bmi<25?"#22c55e":macros.bmi<30?"#f59e0b":"#ef4444",borderRadius:99}})
+        )
+      ),
+      React.createElement("div",{style:{display:"flex",gap:5}},
+        ...[["diet","🥗 Diet"],["workout","🏋️ Workout"],["plan","📋 Plan"],["history","📈 History"]].map(([k,lbl])=>
+          React.createElement("button",{key:k,onClick:()=>setActiveTab(k),style:{flex:1,padding:"6px 2px",border:"none",borderRadius:8,fontWeight:700,fontSize:11,cursor:"pointer",background:activeTab===k?"linear-gradient(135deg,#38bdf8,#818cf8)":T.card,color:activeTab===k?"#fff":T.muted}},lbl)
+        )
+      )
+    ),
+
+    React.createElement("div",{style:{padding:12}},
+
+      // ─ DIET ─
+      activeTab==="diet"&&React.createElement(React.Fragment,{},
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},`🎯 Targets · `,React.createElement("span",{style:{color:macros.goal.color}},macros.goal.label)),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}},
+            ...[{lbl:"Maintenance",val:macros.maintenance,unit:"kcal",col:"#475569"},{lbl:isLoss?"Loss Target":"Muscle Target",val:macros.targetCal,unit:"kcal",col:macros.goal.color},{lbl:"Protein",val:macros.protein,unit:"g",col:"#a78bfa"}].map(m=>
+              React.createElement("div",{key:m.lbl,style:{background:T.inp,borderRadius:10,padding:10,textAlign:"center",borderTop:`3px solid ${m.col}`}},
+                React.createElement("div",{style:{fontSize:17,fontWeight:800,color:m.col}},m.val),
+                React.createElement("div",{style:{fontSize:10,color:T.muted}},m.unit),
+                React.createElement("div",{style:{fontSize:10,color:T.sub,marginTop:2}},m.lbl)
+              )
+            )
+          )
+        ),
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"📊 Today's Progress"),
+          ...[{lbl:"Calories",cur:totalCal,goal:macros.targetCal,unit:"kcal",col:calOver?"#ef4444":macros.goal.color,pct:calPct,warn:calOver},{lbl:"Protein",cur:Math.round(totalProtein),goal:macros.protein,unit:"g",col:"#a78bfa",pct:protPct},{lbl:"Carbs",cur:Math.round(totalCarbs),goal:Math.round(macros.targetCal*0.45/4),unit:"g",col:"#f59e0b",pct:totalCarbs/(macros.targetCal*0.45/4)},{lbl:"Fats",cur:Math.round(totalFat),goal:Math.round(macros.targetCal*0.25/9),unit:"g",col:"#22c55e",pct:totalFat/(macros.targetCal*0.25/9)}].map(m=>
+            React.createElement("div",{key:m.lbl,style:{marginBottom:8}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:12}},
+                React.createElement("span",{style:{color:T.sub}},m.lbl),
+                React.createElement("span",{style:{color:m.col,fontWeight:700}},`${m.cur}/${m.goal}${m.unit}${m.warn?" ⚠️ Over!":""}`)
+              ),
+              React.createElement("div",{style:cs.prog},React.createElement("div",{style:{height:"100%",width:`${Math.min((m.pct||0)*100,100)}%`,background:m.col,borderRadius:99,transition:"width 0.4s"}}))
+            )
+          )
+        ),
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},`🍛 Add Food · ${FOODS.length} items`),
+          React.createElement("input",{style:{...cs.inp,marginBottom:8},placeholder:"🔍 Search food...",value:foodSearch,onChange:e=>setFoodSearch(e.target.value)}),
+          React.createElement("div",{style:{display:"flex",gap:5,overflowX:"auto",paddingBottom:6,marginBottom:8}},
+            ...cats.map(c=>React.createElement("button",{key:c,onClick:()=>setFoodCat(c),style:{padding:"4px 10px",borderRadius:20,border:"none",cursor:"pointer",fontSize:11,fontWeight:600,whiteSpace:"nowrap",background:foodCat===c?"#38bdf8":T.inp,color:foodCat===c?"#fff":T.muted}},c))
+          ),
+          React.createElement("div",{style:{maxHeight:220,overflowY:"auto"}},
+            ...filteredFoods.map(food=>React.createElement("div",{key:food.name,style:cs.row},
+              React.createElement("div",{style:{flex:1}},
+                React.createElement("div",{style:{fontSize:12,fontWeight:600,color:T.text}},food.name),
+                React.createElement("div",{style:cs.tag},`${food.cal}kcal · P:${food.protein}g · C:${food.carbs}g · F:${food.fat}g`)
+              ),
+              React.createElement("input",{style:{...cs.inp,width:42,padding:"4px 5px",textAlign:"center",fontSize:13},type:"number",min:"0.5",step:"0.5",placeholder:"×1",value:qty[food.name]||"",onChange:e=>setQty(q=>({...q,[food.name]:e.target.value}))}),
+              React.createElement("button",{style:cs.badd,onClick:()=>addFood(food)},"+")
+            ))
+          )
+        ),
+        foodLog.length>0&&React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},`✅ Eaten Today (${foodLog.length} items)`),
+          ...foodLog.map(f=>React.createElement("div",{key:f.name,style:{...cs.row,fontSize:12}},
+            React.createElement("div",{style:{flex:1}},
+              React.createElement("div",{style:{fontWeight:600,color:T.text}},`${f.name} `,React.createElement("span",{style:{color:T.muted}},`×${f.qty}`)),
+              React.createElement("div",{style:cs.tag},`${f.cal}kcal · P:${f.protein}g`)
+            ),
+            React.createElement("button",{style:{background:"none",border:"1px solid #ef4444",borderRadius:6,padding:"3px 7px",color:"#ef4444",cursor:"pointer",fontSize:11},onClick:()=>updateToday({foodLog:foodLog.filter(x=>x.name!==f.name)})},"✕")
+          )),
+          React.createElement("div",{style:{marginTop:8,background:T.inp,borderRadius:10,padding:10,display:"flex",justifyContent:"space-around"}},
+            ...[{v:totalCal,l:"kcal",c:calOver?"#ef4444":macros.goal.color},{v:`${Math.round(totalProtein)}g`,l:"protein",c:"#a78bfa"},{v:Math.max(0,macros.targetCal-totalCal),l:"remaining",c:macros.goal.color}].map(x=>
+              React.createElement("div",{key:x.l,style:{textAlign:"center"}},
+                React.createElement("div",{style:{fontSize:16,fontWeight:800,color:x.c}},x.v),
+                React.createElement("div",{style:{fontSize:10,color:T.muted}},x.l)
+              )
+            )
+          )
+        ),
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"💧 Water Intake"),
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:6}},
+            React.createElement("span",{style:{color:"#38bdf8",fontWeight:700}},`${water} ml`),
+            React.createElement("span",{style:{color:T.muted}},`Goal: ${WATER_GOAL} ml`)
+          ),
+          React.createElement("div",{style:{...cs.prog,height:14,marginBottom:10}},React.createElement("div",{style:{height:"100%",width:`${waterPct*100}%`,background:"linear-gradient(90deg,#38bdf8,#0ea5e9)",borderRadius:99,transition:"width 0.4s"}})),
+          React.createElement("div",{style:{display:"flex",gap:5,marginBottom:8}},
+            ...[200,300,500].map(ml=>React.createElement("button",{key:ml,style:{...cs.bsm,border:"1px solid #38bdf8",color:"#38bdf8"},onClick:()=>addWater(ml)},`+${ml}ml`))
+          ),
+          React.createElement("div",{style:{display:"flex",gap:6,marginBottom:8}},
+            React.createElement("input",{style:{...cs.inp,flex:1},type:"number",placeholder:"Custom ml...",value:waterInput,onChange:e=>setWaterInput(e.target.value)}),
+            React.createElement("button",{style:{...cs.bsm,background:"#38bdf8",color:"#0f172a",border:"none",fontWeight:700},onClick:()=>addWater()},"Add")
+          ),
+          water>=WATER_GOAL&&React.createElement("div",{style:{color:"#22c55e",fontSize:12,textAlign:"center",marginBottom:6}},"🎉 Goal achieved!"),
+          waterLog.length>0&&React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5,borderTop:`1px solid ${T.border}`,paddingTop:8}},
+            ...waterLog.map(e=>React.createElement("div",{key:e.id,style:{display:"flex",alignItems:"center",gap:4,background:T.inp,borderRadius:20,padding:"3px 8px",border:`1px solid ${T.border}`}},
+              React.createElement("span",{style:{fontSize:11,color:"#38bdf8"}},`💧${e.ml}ml`),
+              React.createElement("button",{onClick:()=>removeWater(e),style:{background:"none",border:"none",color:"#ef4444",cursor:"pointer",fontSize:11,padding:0}},"✕")
+            ))
+          )
+        ),
+        React.createElement("div",{style:{...cs.card,textAlign:"center"}},
+          React.createElement("div",{style:cs.h2},"🏆 Daily Diet Score"),
+          React.createElement("div",{style:{position:"relative",display:"inline-block"}},
+            React.createElement(Ring,{pct:score/100,color:scColor(score)}),
+            React.createElement("div",{style:{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}},
+              React.createElement("div",{style:{fontSize:24,fontWeight:900,color:scColor(score)}},score),
+              React.createElement("div",{style:{fontSize:10,color:T.muted}},"/100")
+            )
+          ),
+          React.createElement("div",{style:{marginTop:8,fontSize:14,fontWeight:700,color:scColor(score)}},score>=80?"Excellent 💪":score>=60?"Good 👍":score>=40?"Average 😐":"Needs Work 😓")
+        )
+      ),
+
+      // ─ WORKOUT ─
+      activeTab==="workout"&&React.createElement(React.Fragment,{},
+        burnedCal>0&&React.createElement("div",{style:{...cs.card,background:"linear-gradient(135deg,#1e293b,#0f172a)"}},
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-around",textAlign:"center"}},
+            React.createElement("div",{},React.createElement("div",{style:{fontSize:22,fontWeight:900,color:"#f59e0b"}},`🔥 ${burnedCal}`),React.createElement("div",{style:{fontSize:11,color:T.muted}},"kcal burned")),
+            React.createElement("div",{},React.createElement("div",{style:{fontSize:22,fontWeight:900,color:"#22c55e"}},totalSets),React.createElement("div",{style:{fontSize:11,color:T.muted}},"sets")),
+            React.createElement("div",{},React.createElement("div",{style:{fontSize:22,fontWeight:900,color:"#38bdf8"}},workoutLog.length),React.createElement("div",{style:{fontSize:11,color:T.muted}},"exercises"))
+          )
+        ),
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"🏠 Environment"),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}},
+            ...[["home","🏠 Home"],["home_gym","🏋️ Home Gym"],["gym","🏟️ Gym"]].map(([k,lbl])=>React.createElement("div",{key:k,onClick:()=>setWType(k),style:{textAlign:"center",background:wType===k?T.inp:"transparent",border:`2px solid ${wType===k?"#38bdf8":T.border}`,borderRadius:10,padding:8,cursor:"pointer"}},
+              React.createElement("div",{style:{fontSize:12,fontWeight:700,color:wType===k?"#38bdf8":T.sub}},lbl)
+            ))
+          )
+        ),
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"🎯 Muscle Group"),
+          React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5}},
+            ...MUSCLES.map(m=>React.createElement("button",{key:m,onClick:()=>{setSelMuscle(m);setExSearch("");},style:{padding:"5px 10px",borderRadius:20,border:"none",cursor:"pointer",fontSize:11,fontWeight:600,background:selMuscle===m?"linear-gradient(135deg,#38bdf8,#818cf8)":T.inp,color:selMuscle===m?"#fff":T.muted}},m))
+          )
+        ),
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},`📋 ${selMuscle} (${filteredEx.length})`),
+          React.createElement("input",{style:{...cs.inp,marginBottom:8},placeholder:"🔍 Search...",value:exSearch,onChange:e=>setExSearch(e.target.value)}),
+          React.createElement("div",{style:{maxHeight:280,overflowY:"auto"}},
+            filteredEx.length===0&&React.createElement("div",{style:{color:T.muted,fontSize:12,textAlign:"center",padding:16}},"No exercises for this combo."),
+            ...filteredEx.map(ex=>React.createElement("div",{key:ex.name,style:{borderBottom:`1px solid ${T.border}`,paddingBottom:8,marginBottom:8}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+                React.createElement("div",{style:{flex:1}},
+                  React.createElement("div",{style:{fontSize:13,fontWeight:700,color:T.text}},ex.name),
+                  React.createElement("div",{style:{fontSize:10,color:T.muted,marginTop:2}},`🎯 ${ex.muscles} · ~${EX_MET[ex.name]||5} MET`)
+                ),
+                React.createElement("div",{style:{display:"flex",gap:4}},
+                  React.createElement("button",{style:{...cs.bsm,padding:"3px 7px",fontSize:11},onClick:()=>setExpandedEx(expandedEx===ex.name?null:ex.name)},expandedEx===ex.name?"▲":"ℹ️"),
+                  React.createElement("button",{style:{...cs.badd,padding:"3px 9px"},onClick:()=>addExercise(ex)},"+ Log")
+                )
+              ),
+              expandedEx===ex.name&&React.createElement("div",{style:{marginTop:6,background:T.inp,borderRadius:8,padding:8}},
+                React.createElement("div",{style:{fontSize:11,color:T.sub,marginBottom:3}},`💡 ${ex.tip}`),
+                React.createElement("div",{style:{fontSize:11,color:"#22c55e"}},`📈 ${ex.overload}`)
+              )
+            ))
+          )
+        ),
+        workoutLog.length>0&&React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},`🗒️ Today's Workout`),
+          ...workoutLog.map(ex=>React.createElement("div",{key:ex.name,style:{background:T.inp,borderRadius:10,padding:10,marginBottom:8}},
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+              React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#38bdf8"}},ex.name),
+              React.createElement("button",{style:{background:"none",border:"1px solid #ef4444",borderRadius:6,padding:"2px 7px",color:"#ef4444",cursor:"pointer",fontSize:11},onClick:()=>updateToday({workoutLog:workoutLog.filter(w=>w.name!==ex.name)})},"Remove")
+            ),
+            React.createElement("div",{style:{display:"grid",gridTemplateColumns:"22px 1fr 1fr 22px",gap:5,alignItems:"center",marginBottom:5}},
+              ...["#","Reps","kg",""].map((h,i)=>React.createElement("div",{key:i,style:{fontSize:10,color:T.muted,textAlign:"center"}},h))
+            ),
+            ...ex.sets.map((set,i)=>React.createElement("div",{key:i,style:{display:"grid",gridTemplateColumns:"22px 1fr 1fr 22px",gap:5,alignItems:"center",marginBottom:5}},
+              React.createElement("div",{style:{fontSize:10,color:T.muted,textAlign:"center",background:T.card,borderRadius:5,padding:"4px 0"}},`#${i+1}`),
+              React.createElement("input",{style:{...cs.inp,padding:"4px 6px",textAlign:"center",fontSize:13},type:"number",min:"1",value:set.reps,onChange:e=>updSet(ex.name,i,"reps",+e.target.value)}),
+              React.createElement("input",{style:{...cs.inp,padding:"4px 6px",textAlign:"center",fontSize:13},type:"number",min:"0",step:"0.5",value:set.weight,onChange:e=>updSet(ex.name,i,"weight",+e.target.value)}),
+              React.createElement("button",{style:{background:"none",border:`1px solid ${T.border}`,borderRadius:5,padding:"3px 4px",color:"#ef4444",cursor:"pointer",fontSize:11},onClick:()=>removeSet(ex.name,i)},"✕")
+            )),
+            React.createElement("button",{style:{...cs.bsm,width:"100%",textAlign:"center",fontSize:11,marginTop:3},onClick:()=>addSet(ex.name)},"+ Add Set"),
+            ex.sets.length>=2&&ex.sets[ex.sets.length-1].weight>ex.sets[ex.sets.length-2].weight&&
+              React.createElement("div",{style:{fontSize:11,color:"#22c55e",marginTop:5,textAlign:"center"}},"📈 Progressive overload! Great job!")
+          ))
+        )
+      ),
+
+      // ─ PLAN ─
+      activeTab==="plan"&&React.createElement(React.Fragment,{},
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},`👤 Profile · Day ${daysSince}`),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+            ...[["Goal",GOALS.find(g=>g.key===profile.goal)?.label||"—"],["Split",SPLITS.find(s=>s.key===profile.split)?.label||"Auto"],["Duration",`${profile.targetWeeks||"?"} weeks`],["Rest Days",`${profile.restDays}/week`],["BMI",`${macros?.bmi||"—"} (${macros?.bmiCat||"—"})`],["Environment",profile.workoutEnv==="gym"?"🏟️ Gym":profile.workoutEnv==="home_gym"?"🏋️ Home Gym":"🏠 Home"]].map(([k,v])=>
+              React.createElement("div",{key:k,style:{background:T.inp,borderRadius:8,padding:"8px 10px"}},
+                React.createElement("div",{style:{fontSize:10,color:T.muted}},k),
+                React.createElement("div",{style:{fontSize:12,fontWeight:700,color:T.text,marginTop:2}},v)
+              )
+            )
+          )
+        ),
+        autoPlan&&React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},`📅 Weekly Schedule · ${autoPlan.splitName}`),
+          ...autoPlan.schedule.map((day,i)=>React.createElement("div",{key:i,style:{background:T.inp,borderRadius:10,padding:10,marginBottom:6}},
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:day.type!=="Rest"?6:0}},
+              React.createElement("div",{style:{fontSize:13,fontWeight:700,color:day.type==="Rest"?T.muted:"#38bdf8"}},`${day.day} — ${day.type==="Rest"?"😴 Rest":day.type}`),
+              day.type!=="Rest"&&React.createElement("div",{style:{fontSize:10,color:T.muted}},`${day.exercises.length} exercises`)
+            ),
+            day.type!=="Rest"&&day.exercises.map((ex,j)=>React.createElement("div",{key:j,style:{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:`1px solid ${T.border}`}},
+              React.createElement("div",{style:{fontSize:12,color:T.text}},ex.name),
+              React.createElement("div",{style:{fontSize:10,color:T.muted}},ex.muscle)
+            ))
+          ))
+        ),
+        macros&&React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"🍽️ Diet Targets"),
+          React.createElement("div",{style:{background:T.inp,borderRadius:10,padding:12}},
+            ...[{lbl:"Calories",val:`${macros.targetCal} kcal`,col:macros.goal.color},{lbl:"Protein",val:`${macros.protein}g`,col:"#a78bfa"},{lbl:"Carbs (est.)",val:`${Math.round(macros.targetCal*0.45/4)}g`,col:"#f59e0b"},{lbl:"Fats (est.)",val:`${Math.round(macros.targetCal*0.25/9)}g`,col:"#22c55e"}].map(m=>
+              React.createElement("div",{key:m.lbl,style:{display:"flex",justifyContent:"space-between",marginBottom:5}},
+                React.createElement("span",{style:{fontSize:12,color:T.sub}},m.lbl),
+                React.createElement("span",{style:{fontSize:12,fontWeight:700,color:m.col}},m.val)
+              )
+            )
+          )
+        ),
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"💾 Data Backup"),
+          React.createElement("div",{style:{fontSize:12,color:T.sub,marginBottom:10}},"Export your data regularly to prevent loss if browser cache is cleared."),
+          React.createElement("button",{style:{...cs.btn,marginBottom:8},onClick:exportData},"📤 Export Backup JSON"),
+          React.createElement("button",{style:{...cs.bsm,width:"100%",textAlign:"center",padding:10},onClick:()=>fileRef.current.click()},"📂 Import Backup"),
+          React.createElement("input",{ref:fileRef,type:"file",accept:".json",style:{display:"none"},onChange:importData}),
+          importMsg&&React.createElement("div",{style:{fontSize:12,color:"#22c55e",marginTop:6,textAlign:"center"}},importMsg),
+          React.createElement("div",{style:{marginTop:12,borderTop:`1px solid ${T.border}`,paddingTop:12}},
+            React.createElement("div",{style:{fontSize:12,color:"#ef4444",fontWeight:700,marginBottom:6}},"⚠️ Danger Zone"),
+            React.createElement("button",{style:{...cs.bsm,width:"100%",textAlign:"center",padding:10,border:"1px solid #ef4444",color:"#ef4444"},onClick:()=>setShowConfirm("reset")},"🗑️ Reset All Data")
+          )
+        )
+      ),
+
+      // ─ HISTORY ─
+      activeTab==="history"&&React.createElement(React.Fragment,{},
+        React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"🔥 Streaks"),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+            ...[{lbl:"Overall 🏆",val:streaks.overall,col:"#f59e0b"},{lbl:"Diet 🥗",val:streaks.diet,col:macros?.goal.color||"#38bdf8"},{lbl:"Workout 🏋️",val:streaks.workout,col:"#22c55e"},{lbl:"Water 💧",val:streaks.water,col:"#38bdf8"}].map(s=>
+              React.createElement("div",{key:s.lbl,style:{background:T.inp,borderRadius:10,padding:12,textAlign:"center"}},
+                React.createElement("div",{style:{fontSize:26,fontWeight:900,color:s.col}},s.val),
+                React.createElement("div",{style:{fontSize:10,color:T.muted}},"day streak"),
+                React.createElement("div",{style:{fontSize:11,color:T.sub,marginTop:2}},s.lbl)
+              )
+            )
+          )
+        ),
+        React.createElement("div",{style:{display:"flex",gap:5,marginBottom:10,overflowX:"auto"}},
+          ...[["overview","Overview"],["calendar","Calendar"],["weight","Weight"],["diet","Diet Log"],["workout","Workouts"]].map(([k,lbl])=>
+            React.createElement("button",{key:k,onClick:()=>setHistTab(k),style:{flexShrink:0,padding:"6px 10px",border:"none",borderRadius:8,fontWeight:700,fontSize:11,cursor:"pointer",background:histTab===k?"#334155":T.card,color:histTab===k?T.text:T.muted}},lbl)
+          )
+        ),
+        histTab==="overview"&&React.createElement(React.Fragment,{},
+          React.createElement("div",{style:cs.card},
+            React.createElement("div",{style:cs.h2},`📊 Journey · Day ${daysSince}`),
+            React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}},
+              ...[{lbl:"Days Tracked",val:Object.keys(history).length,col:"#38bdf8"},{lbl:"Avg Score",val:Math.round(Object.values(history).filter(d=>d.score).reduce((s,d)=>s+(d.score||0),0)/Math.max(Object.values(history).filter(d=>d.score).length,1))||0,col:"#a78bfa"},{lbl:"Workouts",val:Object.values(history).filter(d=>d.workoutDone).length,col:"#22c55e"}].map(s=>
+                React.createElement("div",{key:s.lbl,style:{background:T.inp,borderRadius:10,padding:10,textAlign:"center"}},
+                  React.createElement("div",{style:{fontSize:20,fontWeight:800,color:s.col}},s.val),
+                  React.createElement("div",{style:{fontSize:10,color:T.muted,marginTop:2}},s.lbl)
+                )
+              )
+            )
+          ),
+          React.createElement("div",{style:cs.card},
+            React.createElement("div",{style:cs.h2},"📈 7-Day Score"),
+            React.createElement("div",{style:{display:"flex",gap:4,alignItems:"flex-end",height:80}},
+              ...Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const dk=toDateKey(d);const s=history[dk]?.score||0;return React.createElement("div",{key:i,style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}},
+                React.createElement("div",{style:{width:"100%",background:scColor(s),borderRadius:"4px 4px 0 0",height:`${Math.max(s*0.72,4)}px`,transition:"height 0.4s"}}),
+                React.createElement("div",{style:{fontSize:9,color:T.muted}},d.toLocaleDateString("en-IN",{weekday:"short"})),
+                s>0&&React.createElement("div",{style:{fontSize:9,color:scColor(s),fontWeight:700}},s)
+              );})
+            )
+          )
+        ),
+        histTab==="calendar"&&React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"📅 28-Day Calendar"),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}},
+            ...["M","T","W","T","F","S","S"].map((d,i)=>React.createElement("div",{key:i,style:{textAlign:"center",fontSize:10,color:T.muted,fontWeight:700}},d))
+          ),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}},
+            ...Array.from({length:28},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(27-i));const dk=toDateKey(d);const s=history[dk]?.score||0;const isT=dk===today;const bg=s>=80?"#22c55e":s>=60?"#f59e0b":s>0?"#ef4444":T.border;return React.createElement("div",{key:i,style:{aspectRatio:"1",background:bg,borderRadius:6,border:isT?"2px solid #fff":"2px solid transparent",display:"flex",alignItems:"center",justifyContent:"center"}},
+              React.createElement("div",{style:{fontSize:9,color:s>0?"#fff":T.muted,fontWeight:700}},d.getDate())
+            );})
+          ),
+          React.createElement("div",{style:{display:"flex",gap:10,marginTop:10,justifyContent:"center"}},
+            ...[["#22c55e","80+"],["#f59e0b","60-79"],["#ef4444","<60"],[T.border,"No data"]].map(([col,lbl])=>
+              React.createElement("div",{key:lbl,style:{display:"flex",alignItems:"center",gap:4}},
+                React.createElement("div",{style:{width:10,height:10,background:col,borderRadius:3}}),
+                React.createElement("span",{style:{fontSize:10,color:T.muted}},lbl)
+              )
+            )
+          )
+        ),
+        histTab==="weight"&&React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"⚖️ Weight Progress"),
+          React.createElement("div",{style:{display:"flex",gap:8,marginBottom:14}},
+            React.createElement("input",{style:{...cs.inp,flex:1},type:"number",step:"0.1",placeholder:"Today's weight (kg)",value:weightEntry,onChange:e=>setWeightEntry(e.target.value)}),
+            React.createElement("button",{style:{...cs.badd,padding:"8px 14px"},onClick:addWeightLog},"Log")
+          ),
+          weightLog.length===0&&React.createElement("div",{style:{color:T.muted,fontSize:12,textAlign:"center",padding:20}},"No entries yet. Log your weight daily!"),
+          weightLog.length>0&&(()=>{
+            const last=weightLog.slice(-10);
+            const mn=Math.min(...last.map(e=>e.weight))-1;
+            const mx=Math.max(...last.map(e=>e.weight))+1;
+            const range=mx-mn||1;
+            return React.createElement(React.Fragment,{},
+              React.createElement("div",{style:{display:"flex",gap:3,alignItems:"flex-end",height:90,marginBottom:6}},
+                ...last.map((e,i)=>React.createElement("div",{key:i,style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}},
+                  React.createElement("div",{style:{fontSize:9,color:"#38bdf8",fontWeight:700}},e.weight),
+                  React.createElement("div",{style:{width:"100%",background:"#38bdf8",borderRadius:"4px 4px 0 0",height:`${((e.weight-mn)/range)*80}px`,minHeight:4}}),
+                  React.createElement("div",{style:{fontSize:8,color:T.muted}},new Date(e.date+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short"}))
+                ))
+              ),
+              weightLog.length>=2&&(()=>{const diff=(weightLog[weightLog.length-1].weight-weightLog[0].weight).toFixed(1);return React.createElement("div",{style:{background:T.inp,borderRadius:8,padding:10,textAlign:"center",fontSize:12,color:diff<0?"#22c55e":diff>0?"#ef4444":T.muted}},`${diff<0?"📉":"📈"} ${Math.abs(diff)}kg ${diff<0?"lost":"gained"} since Day 1`);})()
+            );
+          })()
+        ),
+        histTab==="diet"&&React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"🍛 Diet History"),
+          histDays.length===0&&React.createElement("div",{style:{color:T.muted,fontSize:12,textAlign:"center",padding:20}},"No data yet."),
+          ...histDays.map(dk=>{const d=history[dk];return React.createElement("div",{key:dk,style:{background:T.inp,borderRadius:10,padding:10,marginBottom:8}},
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:5}},
+              React.createElement("div",{style:{fontSize:12,fontWeight:700,color:T.text}},`${new Date(dk+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}${dk===today?" (Today)":""}`),
+              React.createElement("div",{style:{fontSize:12,fontWeight:800,color:scColor(d.score||0)}},`${d.score||0}/100`)
+            ),
+            React.createElement("div",{style:{display:"flex",gap:10,fontSize:11,color:T.muted}},
+              React.createElement("span",{},`🔥${d.cal||0}kcal`),
+              React.createElement("span",{},`💪${d.protein||0}g`),
+              React.createElement("span",{},`💧${d.water||0}ml`),
+              d.burned&&React.createElement("span",{},`🏃${d.burned}kcal burned`)
+            )
+          );})
+        ),
+        histTab==="workout"&&React.createElement("div",{style:cs.card},
+          React.createElement("div",{style:cs.h2},"🏋️ Workout History"),
+          histDays.length===0&&React.createElement("div",{style:{color:T.muted,fontSize:12,textAlign:"center",padding:20}},"No data yet."),
+          ...histDays.map(dk=>{const d=history[dk];const wl=d.workoutLog||[];return React.createElement("div",{key:dk,style:{background:T.inp,borderRadius:10,padding:10,marginBottom:8}},
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:4}},
+              React.createElement("div",{style:{fontSize:12,fontWeight:700,color:T.text}},`${new Date(dk+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short"})}${dk===today?" (Today)":""}`),
+              React.createElement("div",{style:{fontSize:11,color:d.workoutDone?"#22c55e":T.muted}},d.workoutDone?"✅ Done":"😴 Rest")
+            ),
+            wl.length>0&&React.createElement(React.Fragment,{},
+              React.createElement("div",{style:{fontSize:11,color:T.muted}},`${wl.length} exercises · ${wl.reduce((s,e)=>s+e.sets.length,0)} sets${d.burned?` · 🔥${d.burned}kcal`:""}`),
+              React.createElement("div",{style:{fontSize:11,color:T.muted,marginTop:3}},`${wl.slice(0,3).map(e=>e.name).join(", ")}${wl.length>3?` +${wl.length-3} more`:""}`)
+            )
+          );})
+        )
+      )
+    )
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(App));
+</script>
+
+<!-- Service Worker registration confirmation -->
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    // SW is registered inline above via blob URL
+    console.log('FitIndia Pro: PWA ready');
+  });
+}
+</script>
+</body>
+</html>
